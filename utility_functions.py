@@ -1,4 +1,5 @@
 from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
 import math
 
 
@@ -143,6 +144,7 @@ def send_email(to_addr_list,
                smtpserver="mail.adnxs.net",
                cc_addr_list=None,
                attachments=None,
+               inline_images=None,
                login=None,
                password=None
                ):
@@ -196,7 +198,14 @@ def send_email(to_addr_list,
                 'Content-Disposition', 'attachment', filename=os.path.basename(attachment))
             msgRoot.attach(attached_file)
 
-    # msg.attach(plain)
+    if inline_images:
+        for inline_image in inline_images:
+            with open(inline_image['path'], 'rb') as file:
+                msg_image = MIMEImage(file.read(), name=os.path.basename(inline_image['path']))
+                msg.attach(msg_image)
+                msg_image.add_header('Content-ID', '<{}>'.format(inline_image['cid']))
+
+    msg.attach(plain)
     msg.attach(html)
     msgRoot.attach(msg)
     server = smtplib.SMTP(smtpserver)
@@ -206,10 +215,13 @@ def send_email(to_addr_list,
     server.quit()
 
 
+def add_lists(first, second):
+    return [x + y for x, y in zip(first, second)]
+
 def format_col_names(input_df):
     for col in input_df.columns:
         new_col = col.replace('_', ' ')
-        new_col = str.title(new_col)
+        new_col = new_col.title()
         # print new_col
         input_df = input_df.rename(columns={col: new_col})
     return input_df
